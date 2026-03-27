@@ -1,0 +1,24 @@
+{
+  "name": "Good Grief It's Gametime",
+  "short_name": "Gametime",
+  "description": "Live sports scores, schedules, and TV listings",
+  "start_url": "./sports-dashboard.html",
+  "display": "standalone",
+  "background_color": "#0d0e12",
+  "theme_color": "#0d0e12",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gametime">
+<meta name="theme-color" content="#0d0e12">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<title>Good Grief It's Gametime</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0e12;
+    --surface: #15171e;
+    --surface2: #1c1f28;
+    --surface3: #242836;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8eaf0;
+    --muted: #7a7f90;
+    --accent: #e63946;
+    --accent2: #4cc9f0;
+    --gold: #f4a261;
+    --green: #57cc99;
+    --font-head: 'Barlow Condensed', sans-serif;
+    --font-body: 'Barlow', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 15px; min-height: 100vh; overflow-x: hidden; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+
+  header { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+  .logo { font-family: var(--font-head); font-size: 22px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text); }
+  .logo span { color: var(--accent); }
+  .live-badge { display: flex; align-items: center; gap: 6px; font-family: var(--font-head); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }
+  #clock { font-family: var(--font-head); font-size: 22px; font-weight: 600; color: var(--text); letter-spacing: 0.05em; }
+
+  .tabs { display: flex; gap: 2px; padding: 12px 24px 0; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .tab { font-family: var(--font-head); font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 8px 18px; border: none; background: none; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: color 0.15s, border-color 0.15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+  .filter-row { display: flex; align-items: center; gap: 8px; padding: 12px 24px; overflow-x: auto; scrollbar-width: none; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .filter-row::-webkit-scrollbar { display: none; }
+  .filter-label { font-family: var(--font-head); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); white-space: nowrap; margin-right: 4px; }
+  .chip { font-family: var(--font-head); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 12px; border-radius: 3px; border: 1px solid var(--border2); background: none; color: var(--muted); cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+  .chip:hover { color: var(--text); border-color: rgba(255,255,255,0.25); }
+  .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  main { padding: 20px 24px; }
+
+  .section-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; margin-top: 24px; }
+  .section-head:first-child { margin-top: 0; }
+  .section-title { font-family: var(--font-head); font-size: 16px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text); }
+  .section-count { font-size: 12px; color: var(--muted); }
+
+  .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; margin-bottom: 10px; }
+
+  .game-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; transition: border-color 0.15s, transform 0.15s; cursor: pointer; position: relative; overflow: hidden; }
+  .game-card:hover { border-color: var(--border2); transform: translateY(-1px); }
+  .game-card.live-card { border-left: 3px solid var(--accent); }
+  .game-card.watchlisted { border-left: 3px solid var(--gold); }
+  .game-card.watchlisted.live-card { border-left: 3px solid var(--accent); }
+
+  .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .network-badge { font-family: var(--font-head); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: 3px; background: var(--surface3); color: var(--accent2); }
+  .time-label { font-size: 12px; color: var(--muted); }
+  .live-label { font-family: var(--font-head); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); display: flex; align-items: center; gap: 5px; }
+
+  .matchup { display: flex; align-items: center; gap: 8px; }
+  .team-block { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .team-block.away { align-items: flex-start; }
+  .team-block.home { align-items: flex-end; text-align: right; }
+  .team-name { font-family: var(--font-head); font-size: 18px; font-weight: 700; letter-spacing: 0.04em; line-height: 1; }
+  .team-full { font-size: 11px; color: var(--muted); line-height: 1; }
+  .score-block { display: flex; align-items: center; gap: 6px; padding: 0 6px; }
+  .score { font-family: var(--font-head); font-size: 26px; font-weight: 700; min-width: 32px; text-align: center; line-height: 1; }
+  .score-sep { font-family: var(--font-head); font-size: 20px; color: var(--muted); font-weight: 300; }
+  .vs-text { font-family: var(--font-head); font-size: 14px; font-weight: 600; color: var(--muted); letter-spacing: 0.05em; }
+
+  .card-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .game-status { font-size: 12px; color: var(--muted); }
+  .watch-btn { font-family: var(--font-head); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 10px; border-radius: 3px; border: 1px solid var(--border2); background: none; color: var(--muted); cursor: pointer; transition: all 0.15s; }
+  .watch-btn:hover { color: var(--gold); border-color: var(--gold); }
+  .watch-btn.watching { color: var(--gold); border-color: var(--gold); background: rgba(244,162,97,0.1); }
+
+  .date-nav { display: flex; align-items: center; gap: 8px; padding: 10px 24px; background: var(--surface); border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+  .date-nav::-webkit-scrollbar { display: none; }
+  .date-chip { font-family: var(--font-head); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding: 6px 14px; border-radius: 3px; border: 1px solid var(--border); background: none; color: var(--muted); cursor: pointer; white-space: nowrap; transition: all 0.15s; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+  .date-chip small { font-size: 10px; font-weight: 400; letter-spacing: 0.04em; }
+  .date-chip:hover { color: var(--text); border-color: var(--border2); }
+  .date-chip.active { background: var(--surface3); border-color: var(--border2); color: var(--text); }
+
+  .team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .team-tile { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 16px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; transition: all 0.15s; text-align: center; }
+  .team-tile:hover { border-color: var(--border2); transform: translateY(-1px); }
+  .team-tile.selected { border-color: var(--gold); background: rgba(244,162,97,0.06); }
+  .team-icon { font-size: 28px; line-height: 1; }
+  .team-tile-name { font-family: var(--font-head); font-size: 14px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+  .team-tile-league { font-size: 11px; color: var(--muted); }
+
+  .loading { display: flex; align-items: center; justify-content: center; padding: 60px 24px; color: var(--muted); font-family: var(--font-head); font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; gap: 10px; }
+  .spinner { width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty { text-align: center; padding: 48px 24px; color: var(--muted); font-size: 14px; }
+  .empty strong { display: block; font-family: var(--font-head); font-size: 18px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text); margin-bottom: 6px; }
+
+  .ticker-bar { background: var(--surface); border-top: 1px solid var(--border); overflow: hidden; height: 36px; display: flex; align-items: center; position: fixed; bottom: 0; left: 0; right: 0; }
+  .ticker-sport-label { font-family: var(--font-head); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #fff; background: var(--accent); padding: 0 14px; height: 100%; display: flex; align-items: center; white-space: nowrap; flex-shrink: 0; }
+  .ticker-scroll { overflow: hidden; flex: 1; height: 100%; display: flex; align-items: center; }
+  .ticker-inner { display: flex; animation: ticker 40s linear infinite; width: max-content; }
+  @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .ticker-item { font-family: var(--font-head); font-size: 13px; font-weight: 500; padding: 0 20px; color: var(--muted); border-right: 1px solid var(--border); white-space: nowrap; display: flex; align-items: center; gap: 6px; height: 36px; }
+  .ticker-item .t-live { color: var(--accent); font-weight: 700; }
+  .ticker-item .t-score { color: var(--text); font-weight: 600; }
+
+  body { padding-bottom: 44px; }
+  @media (max-width: 600px) {
+    header { padding: 10px 14px; }
+    main { padding: 14px; }
+    .tabs { padding: 10px 14px 0; }
+    .filter-row, .date-nav { padding: 10px 14px; }
+    .game-grid { grid-template-columns: 1fr; }
+  }
+
+  /* SETTINGS */
+  .settings-wrap { max-width: 560px; }
+  .settings-section {
+    margin-bottom: 28px;
+  }
+  .settings-section-title {
+    font-family: var(--font-head);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 16px;
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-label { font-size: 14px; color: var(--text); }
+  .settings-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .settings-control { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .settings-input {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--font-head);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 5px 10px;
+    width: 70px;
+    text-align: center;
+  }
+  .settings-input:focus { outline: none; border-color: var(--accent); }
+  .settings-unit { font-size: 12px; color: var(--muted); }
+  .toggle-switch {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--surface3);
+    border-radius: 22px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border: 1px solid var(--border2);
+  }
+  .toggle-slider:before {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    left: 2px; top: 2px;
+    background: var(--muted);
+    border-radius: 50%;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .toggle-slider { background: #7f1d1d; border-color: #991b1b; }
+  .toggle-slider:before { background: #fca5a5; }
+  .toggle-switch input:checked + .toggle-slider { background: #166534; border-color: #15803d; }
+  .toggle-switch input:checked + .toggle-slider:before { transform: translateX(18px); background: #86efac; }
+  .time-input {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--font-head);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 5px 10px;
+    width: 90px;
+    text-align: center;
+  }
+  .time-input:focus { outline: none; border-color: var(--accent); }
+  .league-toggles { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px; }
+  .save-btn {
+    font-family: var(--font-head);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 8px 20px;
+    border-radius: 4px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    margin-top: 8px;
+  }
+  .save-btn:hover { opacity: 0.85; }
+  .save-confirm {
+    font-size: 12px;
+    color: var(--green);
+    font-family: var(--font-head);
+    letter-spacing: 0.06em;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .save-confirm.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Good Grief <span>It's Gametime</span></div>
+  <div class="live-badge"><div class="live-dot"></div>Live</div>
+  <div id="clock"></div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" onclick="switchTab('live')">Live</button>
+  <button class="tab" onclick="switchTab('upcoming')">Upcoming</button>
+  <button class="tab" onclick="switchTab('final')">Final</button>
+  <button class="tab" onclick="switchTab('my-teams')">My Teams <span id="my-teams-count" style="opacity:0.5;font-weight:400;"></span></button>
+  <button class="tab" onclick="switchTab('settings')" style="margin-left:auto;">⚙ Settings</button>
+</nav>
+
+<div class="filter-row" id="sport-filter-row">
+  <span class="filter-label">Sport</span>
+  <button class="chip active" data-sport="all"    onclick="filterSport(this)">All</button>
+  <button class="chip"        data-sport="nfl"    onclick="filterSport(this)">NFL</button>
+  <button class="chip"        data-sport="nba"    onclick="filterSport(this)">NBA</button>
+  <button class="chip"        data-sport="mlb"    onclick="filterSport(this)">MLB</button>
+  <button class="chip"        data-sport="nhl"    onclick="filterSport(this)">NHL</button>
+  <button class="chip"        data-sport="ncaaf"  onclick="filterSport(this)">NCAAF</button>
+  <button class="chip"        data-sport="ncaab"  onclick="filterSport(this)">NCAAB</button>
+  <button class="chip"        data-sport="soccer" onclick="filterSport(this)">Soccer</button>
+</div>
+
+<div id="date-nav-row" style="display:none;" class="date-nav"></div>
+
+<main id="main-content">
+  <div class="loading"><div class="spinner"></div>Loading games...</div>
+</main>
+
+<div class="ticker-bar">
+  <div class="ticker-sport-label">Scores</div>
+  <div class="ticker-scroll">
+    <div class="ticker-inner" id="ticker-inner"></div>
+  </div>
+</div>
+
+<script>
+const LEAGUES = [
+  { sport:'football',   league:'nfl',                     label:'NFL',   emoji:'🏈' },
+  { sport:'basketball', league:'nba',                     label:'NBA',   emoji:'🏀' },
+  { sport:'baseball',   league:'mlb',                     label:'MLB',   emoji:'⚾' },
+  { sport:'hockey',     league:'nhl',                     label:'NHL',   emoji:'🏒' },
+  { sport:'football',   league:'college-football',        label:'NCAAF', emoji:'🏈' },
+  { sport:'basketball', league:'mens-college-basketball', label:'NCAAB', emoji:'🏀' },
+  { sport:'soccer',     league:'usa.1',                   label:'MLS',   emoji:'⚽' },
+];
+
+const NETWORKS = {
+  espn:'ESPN', espn2:'ESPN2', abc:'ABC', nbc:'NBC', cbs:'CBS', fox:'FOX',
+  tnt:'TNT', tbs:'TBS', 'nhl network':'NHL Net', 'nba tv':'NBA TV',
+  'mlb network':'MLB Net', peacock:'Peacock', 'amazon prime video':'Prime',
+  'apple tv+':'Apple TV+', 'paramount+':'Param+', fs1:'FS1', fs2:'FS2',
+};
+
+const MASTER_TEAMS = {
+  nfl: [
+    {abbr:'ARI',full:'Arizona Cardinals',emoji:'🏈',league:'nfl'},{abbr:'ATL',full:'Atlanta Falcons',emoji:'🏈',league:'nfl'},
+    {abbr:'BAL',full:'Baltimore Ravens',emoji:'🏈',league:'nfl'},{abbr:'BUF',full:'Buffalo Bills',emoji:'🏈',league:'nfl'},
+    {abbr:'CAR',full:'Carolina Panthers',emoji:'🏈',league:'nfl'},{abbr:'CHI',full:'Chicago Bears',emoji:'🏈',league:'nfl'},
+    {abbr:'CIN',full:'Cincinnati Bengals',emoji:'🏈',league:'nfl'},{abbr:'CLE',full:'Cleveland Browns',emoji:'🏈',league:'nfl'},
+    {abbr:'DAL',full:'Dallas Cowboys',emoji:'🏈',league:'nfl'},{abbr:'DEN',full:'Denver Broncos',emoji:'🏈',league:'nfl'},
+    {abbr:'DET',full:'Detroit Lions',emoji:'🏈',league:'nfl'},{abbr:'GB',full:'Green Bay Packers',emoji:'🏈',league:'nfl'},
+    {abbr:'HOU',full:'Houston Texans',emoji:'🏈',league:'nfl'},{abbr:'IND',full:'Indianapolis Colts',emoji:'🏈',league:'nfl'},
+    {abbr:'JAX',full:'Jacksonville Jaguars',emoji:'🏈',league:'nfl'},{abbr:'KC',full:'Kansas City Chiefs',emoji:'🏈',league:'nfl'},
+    {abbr:'LAC',full:'Los Angeles Chargers',emoji:'🏈',league:'nfl'},{abbr:'LAR',full:'Los Angeles Rams',emoji:'🏈',league:'nfl'},
+    {abbr:'LV',full:'Las Vegas Raiders',emoji:'🏈',league:'nfl'},{abbr:'MIA',full:'Miami Dolphins',emoji:'🏈',league:'nfl'},
+    {abbr:'MIN',full:'Minnesota Vikings',emoji:'🏈',league:'nfl'},{abbr:'NE',full:'New England Patriots',emoji:'🏈',league:'nfl'},
+    {abbr:'NO',full:'New Orleans Saints',emoji:'🏈',league:'nfl'},{abbr:'NYG',full:'New York Giants',emoji:'🏈',league:'nfl'},
+    {abbr:'NYJ',full:'New York Jets',emoji:'🏈',league:'nfl'},{abbr:'PHI',full:'Philadelphia Eagles',emoji:'🏈',league:'nfl'},
+    {abbr:'PIT',full:'Pittsburgh Steelers',emoji:'🏈',league:'nfl'},{abbr:'SEA',full:'Seattle Seahawks',emoji:'🏈',league:'nfl'},
+    {abbr:'SF',full:'San Francisco 49ers',emoji:'🏈',league:'nfl'},{abbr:'TB',full:'Tampa Bay Buccaneers',emoji:'🏈',league:'nfl'},
+    {abbr:'TEN',full:'Tennessee Titans',emoji:'🏈',league:'nfl'},{abbr:'WSH',full:'Washington Commanders',emoji:'🏈',league:'nfl'},
+  ],
+  nba: [
+    {abbr:'ATL',full:'Atlanta Hawks',emoji:'🏀',league:'nba'},{abbr:'BOS',full:'Boston Celtics',emoji:'🏀',league:'nba'},
+    {abbr:'BKN',full:'Brooklyn Nets',emoji:'🏀',league:'nba'},{abbr:'CHA',full:'Charlotte Hornets',emoji:'🏀',league:'nba'},
+    {abbr:'CHI',full:'Chicago Bulls',emoji:'🏀',league:'nba'},{abbr:'CLE',full:'Cleveland Cavaliers',emoji:'🏀',league:'nba'},
+    {abbr:'DAL',full:'Dallas Mavericks',emoji:'🏀',league:'nba'},{abbr:'DEN',full:'Denver Nuggets',emoji:'🏀',league:'nba'},
+    {abbr:'DET',full:'Detroit Pistons',emoji:'🏀',league:'nba'},{abbr:'GSW',full:'Golden State Warriors',emoji:'🏀',league:'nba'},
+    {abbr:'HOU',full:'Houston Rockets',emoji:'🏀',league:'nba'},{abbr:'IND',full:'Indiana Pacers',emoji:'🏀',league:'nba'},
+    {abbr:'LAC',full:'LA Clippers',emoji:'🏀',league:'nba'},{abbr:'LAL',full:'Los Angeles Lakers',emoji:'🏀',league:'nba'},
+    {abbr:'MEM',full:'Memphis Grizzlies',emoji:'🏀',league:'nba'},{abbr:'MIA',full:'Miami Heat',emoji:'🏀',league:'nba'},
+    {abbr:'MIL',full:'Milwaukee Bucks',emoji:'🏀',league:'nba'},{abbr:'MIN',full:'Minnesota Timberwolves',emoji:'🏀',league:'nba'},
+    {abbr:'NOP',full:'New Orleans Pelicans',emoji:'🏀',league:'nba'},{abbr:'NYK',full:'New York Knicks',emoji:'🏀',league:'nba'},
+    {abbr:'OKC',full:'Oklahoma City Thunder',emoji:'🏀',league:'nba'},{abbr:'ORL',full:'Orlando Magic',emoji:'🏀',league:'nba'},
+    {abbr:'PHI',full:'Philadelphia 76ers',emoji:'🏀',league:'nba'},{abbr:'PHX',full:'Phoenix Suns',emoji:'🏀',league:'nba'},
+    {abbr:'POR',full:'Portland Trail Blazers',emoji:'🏀',league:'nba'},{abbr:'SAC',full:'Sacramento Kings',emoji:'🏀',league:'nba'},
+    {abbr:'SAS',full:'San Antonio Spurs',emoji:'🏀',league:'nba'},{abbr:'TOR',full:'Toronto Raptors',emoji:'🏀',league:'nba'},
+    {abbr:'UTA',full:'Utah Jazz',emoji:'🏀',league:'nba'},{abbr:'WAS',full:'Washington Wizards',emoji:'🏀',league:'nba'},
+  ],
+  mlb: [
+    {abbr:'ARI',full:'Arizona Diamondbacks',emoji:'⚾',league:'mlb'},{abbr:'ATL',full:'Atlanta Braves',emoji:'⚾',league:'mlb'},
+    {abbr:'BAL',full:'Baltimore Orioles',emoji:'⚾',league:'mlb'},{abbr:'BOS',full:'Boston Red Sox',emoji:'⚾',league:'mlb'},
+    {abbr:'CHC',full:'Chicago Cubs',emoji:'⚾',league:'mlb'},{abbr:'CWS',full:'Chicago White Sox',emoji:'⚾',league:'mlb'},
+    {abbr:'CIN',full:'Cincinnati Reds',emoji:'⚾',league:'mlb'},{abbr:'CLE',full:'Cleveland Guardians',emoji:'⚾',league:'mlb'},
+    {abbr:'COL',full:'Colorado Rockies',emoji:'⚾',league:'mlb'},{abbr:'DET',full:'Detroit Tigers',emoji:'⚾',league:'mlb'},
+    {abbr:'HOU',full:'Houston Astros',emoji:'⚾',league:'mlb'},{abbr:'KC',full:'Kansas City Royals',emoji:'⚾',league:'mlb'},
+    {abbr:'LAA',full:'Los Angeles Angels',emoji:'⚾',league:'mlb'},{abbr:'LAD',full:'Los Angeles Dodgers',emoji:'⚾',league:'mlb'},
+    {abbr:'MIA',full:'Miami Marlins',emoji:'⚾',league:'mlb'},{abbr:'MIL',full:'Milwaukee Brewers',emoji:'⚾',league:'mlb'},
+    {abbr:'MIN',full:'Minnesota Twins',emoji:'⚾',league:'mlb'},{abbr:'NYM',full:'New York Mets',emoji:'⚾',league:'mlb'},
+    {abbr:'NYY',full:'New York Yankees',emoji:'⚾',league:'mlb'},{abbr:'OAK',full:'Oakland Athletics',emoji:'⚾',league:'mlb'},
+    {abbr:'PHI',full:'Philadelphia Phillies',emoji:'⚾',league:'mlb'},{abbr:'PIT',full:'Pittsburgh Pirates',emoji:'⚾',league:'mlb'},
+    {abbr:'SD',full:'San Diego Padres',emoji:'⚾',league:'mlb'},{abbr:'SF',full:'San Francisco Giants',emoji:'⚾',league:'mlb'},
+    {abbr:'SEA',full:'Seattle Mariners',emoji:'⚾',league:'mlb'},{abbr:'STL',full:'St. Louis Cardinals',emoji:'⚾',league:'mlb'},
+    {abbr:'TB',full:'Tampa Bay Rays',emoji:'⚾',league:'mlb'},{abbr:'TEX',full:'Texas Rangers',emoji:'⚾',league:'mlb'},
+    {abbr:'TOR',full:'Toronto Blue Jays',emoji:'⚾',league:'mlb'},{abbr:'WSH',full:'Washington Nationals',emoji:'⚾',league:'mlb'},
+  ],
+  nhl: [
+    {abbr:'ANA',full:'Anaheim Ducks',emoji:'🏒',league:'nhl'},{abbr:'BOS',full:'Boston Bruins',emoji:'🏒',league:'nhl'},
+    {abbr:'BUF',full:'Buffalo Sabres',emoji:'🏒',league:'nhl'},{abbr:'CAR',full:'Carolina Hurricanes',emoji:'🏒',league:'nhl'},
+    {abbr:'CBJ',full:'Columbus Blue Jackets',emoji:'🏒',league:'nhl'},{abbr:'CGY',full:'Calgary Flames',emoji:'🏒',league:'nhl'},
+    {abbr:'CHI',full:'Chicago Blackhawks',emoji:'🏒',league:'nhl'},{abbr:'COL',full:'Colorado Avalanche',emoji:'🏒',league:'nhl'},
+    {abbr:'DAL',full:'Dallas Stars',emoji:'🏒',league:'nhl'},{abbr:'DET',full:'Detroit Red Wings',emoji:'🏒',league:'nhl'},
+    {abbr:'EDM',full:'Edmonton Oilers',emoji:'🏒',league:'nhl'},{abbr:'FLA',full:'Florida Panthers',emoji:'🏒',league:'nhl'},
+    {abbr:'LAK',full:'Los Angeles Kings',emoji:'🏒',league:'nhl'},{abbr:'MIN',full:'Minnesota Wild',emoji:'🏒',league:'nhl'},
+    {abbr:'MTL',full:'Montreal Canadiens',emoji:'🏒',league:'nhl'},{abbr:'NJD',full:'New Jersey Devils',emoji:'🏒',league:'nhl'},
+    {abbr:'NSH',full:'Nashville Predators',emoji:'🏒',league:'nhl'},{abbr:'NYI',full:'New York Islanders',emoji:'🏒',league:'nhl'},
+    {abbr:'NYR',full:'New York Rangers',emoji:'🏒',league:'nhl'},{abbr:'OTT',full:'Ottawa Senators',emoji:'🏒',league:'nhl'},
+    {abbr:'PHI',full:'Philadelphia Flyers',emoji:'🏒',league:'nhl'},{abbr:'PIT',full:'Pittsburgh Penguins',emoji:'🏒',league:'nhl'},
+    {abbr:'SEA',full:'Seattle Kraken',emoji:'🏒',league:'nhl'},{abbr:'SJS',full:'San Jose Sharks',emoji:'🏒',league:'nhl'},
+    {abbr:'STL',full:'St. Louis Blues',emoji:'🏒',league:'nhl'},{abbr:'TBL',full:'Tampa Bay Lightning',emoji:'🏒',league:'nhl'},
+    {abbr:'TOR',full:'Toronto Maple Leafs',emoji:'🏒',league:'nhl'},{abbr:'UTA',full:'Utah Hockey Club',emoji:'🏒',league:'nhl'},
+    {abbr:'VAN',full:'Vancouver Canucks',emoji:'🏒',league:'nhl'},{abbr:'VGK',full:'Vegas Golden Knights',emoji:'🏒',league:'nhl'},
+    {abbr:'WPG',full:'Winnipeg Jets',emoji:'🏒',league:'nhl'},{abbr:'WSH',full:'Washington Capitals',emoji:'🏒',league:'nhl'},
+  ],
+  soccer: [
+    {abbr:'ATL',full:'Atlanta United',emoji:'⚽',league:'usa.1'},{abbr:'AUS',full:'Austin FC',emoji:'⚽',league:'usa.1'},
+    {abbr:'CHI',full:'Chicago Fire',emoji:'⚽',league:'usa.1'},{abbr:'CLB',full:'Columbus Crew',emoji:'⚽',league:'usa.1'},
+    {abbr:'COL',full:'Colorado Rapids',emoji:'⚽',league:'usa.1'},{abbr:'DAL',full:'FC Dallas',emoji:'⚽',league:'usa.1'},
+    {abbr:'DC',full:'D.C. United',emoji:'⚽',league:'usa.1'},{abbr:'HOU',full:'Houston Dynamo',emoji:'⚽',league:'usa.1'},
+    {abbr:'LAF',full:'LAFC',emoji:'⚽',league:'usa.1'},{abbr:'LAG',full:'LA Galaxy',emoji:'⚽',league:'usa.1'},
+    {abbr:'MIA',full:'Inter Miami',emoji:'⚽',league:'usa.1'},{abbr:'MIN',full:'Minnesota United',emoji:'⚽',league:'usa.1'},
+    {abbr:'MTL',full:'CF Montréal',emoji:'⚽',league:'usa.1'},{abbr:'NE',full:'New England Revolution',emoji:'⚽',league:'usa.1'},
+    {abbr:'NSH',full:'Nashville SC',emoji:'⚽',league:'usa.1'},{abbr:'NYC',full:'New York City FC',emoji:'⚽',league:'usa.1'},
+    {abbr:'NYRB',full:'New York Red Bulls',emoji:'⚽',league:'usa.1'},{abbr:'ORL',full:'Orlando City',emoji:'⚽',league:'usa.1'},
+    {abbr:'PHI',full:'Philadelphia Union',emoji:'⚽',league:'usa.1'},{abbr:'POR',full:'Portland Timbers',emoji:'⚽',league:'usa.1'},
+    {abbr:'RSL',full:'Real Salt Lake',emoji:'⚽',league:'usa.1'},{abbr:'SEA',full:'Seattle Sounders',emoji:'⚽',league:'usa.1'},
+    {abbr:'SJ',full:'San Jose Earthquakes',emoji:'⚽',league:'usa.1'},{abbr:'SKC',full:'Sporting KC',emoji:'⚽',league:'usa.1'},
+    {abbr:'STL',full:'St. Louis City SC',emoji:'⚽',league:'usa.1'},{abbr:'TOR',full:'Toronto FC',emoji:'⚽',league:'usa.1'},
+    {abbr:'VAN',full:'Vancouver Whitecaps',emoji:'⚽',league:'usa.1'},
+  ],
+};
+
+let allGames   = [];
+let watchlist  = JSON.parse(localStorage.getItem('watchlist') || '[]');
+let myTeams    = JSON.parse(localStorage.getItem('myTeams')   || '[]');
+// Migrate old format (plain 'SEA') to new format ('SEA:nfl') — just wipe stale entries
+if (myTeams.some(t => !t.includes(':'))) {
+  myTeams = myTeams.filter(t => t.includes(':'));
+  localStorage.setItem('myTeams', JSON.stringify(myTeams));
+}
+let currentTab   = 'live';
+let currentSport  = 'all';
+let activeSports  = new Set(); // empty = show all; non-empty = show only these
+let selectedDate = 0;
+
+// ─── SETTINGS ─────────────────────────────────────────────────────────
+const DEFAULT_SETTINGS = {
+  liveRefresh:    30,
+  idleRefresh:    300,
+  quietEnabled:   true,
+  quietStart:     '00:00',
+  quietEnd:       '06:00',
+  showSeconds:    true,
+  showLocal:      false,
+  localStyle:     'stacked',
+  enabledLeagues: new Set(['nfl','nba','mlb','nhl','ncaaf','ncaab','soccer']),
+};
+let settings = loadSettings();
+
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem('ggig-settings') || '{}');
+    return {
+      liveRefresh:    s.liveRefresh    ?? DEFAULT_SETTINGS.liveRefresh,
+      idleRefresh:    s.idleRefresh    ?? DEFAULT_SETTINGS.idleRefresh,
+      quietEnabled:   s.quietEnabled   ?? DEFAULT_SETTINGS.quietEnabled,
+      quietStart:     s.quietStart     ?? DEFAULT_SETTINGS.quietStart,
+      quietEnd:       s.quietEnd       ?? DEFAULT_SETTINGS.quietEnd,
+      showSeconds:    s.showSeconds    ?? DEFAULT_SETTINGS.showSeconds,
+      showLocal:      s.showLocal      ?? DEFAULT_SETTINGS.showLocal,
+      localStyle:     s.localStyle     ?? DEFAULT_SETTINGS.localStyle,
+      enabledLeagues: new Set(s.enabledLeagues ?? [...DEFAULT_SETTINGS.enabledLeagues]),
+    };
+  } catch { return {...DEFAULT_SETTINGS, enabledLeagues: new Set(DEFAULT_SETTINGS.enabledLeagues)}; }
+}
+
+function saveSettings() {
+  const s = {...settings, enabledLeagues: [...settings.enabledLeagues]};
+  localStorage.setItem('ggig-settings', JSON.stringify(s));
+}
+
+function teamKey(abbr, league) { return abbr + ':' + league; }
+
+// ─── GAME CACHE ───────────────────────────────────────────────────────
+const CACHE_KEY  = 'ggig-finals-cache';
+const CACHE_DAYS = 10;
+
+function loadCache() {
+  try { return JSON.parse(localStorage.getItem(CACHE_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function saveCache(games) {
+  localStorage.setItem(CACHE_KEY, JSON.stringify(games));
+}
+
+function pruneCache(games) {
+  const cutoff = Date.now() - CACHE_DAYS * 24 * 60 * 60 * 1000;
+  return games.filter(g => g.timestamp >= cutoff);
+}
+
+function mergeIntoCache(freshGames) {
+  let cache = pruneCache(loadCache());
+  // Remove any games we're about to update so we get fresh state
+  const freshIds = new Set(freshGames.map(g => g.id));
+  cache = cache.filter(g => !freshIds.has(g.id));
+  // Add all fresh games (not just finals — we need state info for incomplete day detection)
+  cache.push(...freshGames);
+  saveCache(cache);
+}
+
+function getCachedFinals() {
+  return pruneCache(loadCache()).filter(g => g.state === 'post');
+}
+
+// Work out which past days need backfilling
+function getDaysNeedingBackfill() {
+  const cache = pruneCache(loadCache());
+  const now = Date.now();
+  const days = [];
+
+  for (let i = 1; i < CACHE_DAYS; i++) {
+    const dayStart = new Date();
+    dayStart.setDate(dayStart.getDate() - i);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const dayGames = cache.filter(g => g.timestamp >= dayStart.getTime() && g.timestamp <= dayEnd.getTime());
+
+    if (dayGames.length === 0) {
+      // Fully missing day — fetch it
+      days.push({ offset: i, dateStr: getDateStr(-i) });
+    } else {
+      // Check for stale incomplete games (scheduled time already passed but not post)
+      const hasIncomplete = dayGames.some(g =>
+        (g.state === 'pre' || g.state === 'in') && g.timestamp < now
+      );
+      if (hasIncomplete) {
+        days.push({ offset: i, dateStr: getDateStr(-i) });
+      }
+      // All post = complete, skip
+    }
+  }
+  return days;
+}
+
+async function backfillMissingDays() {
+  const days = getDaysNeedingBackfill();
+  if (!days.length) return;
+  // Fetch all missing/incomplete days in parallel
+  await Promise.all(days.map(async ({ dateStr }) => {
+    const results = await Promise.all(LEAGUES.map(l => fetchLeague(l.sport, l.league, dateStr)));
+    mergeIntoCache(results.flat());
+  }));
+}
+
+async function fetchLeague(sport, league, dateStr) {
+  const url = `https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard${dateStr ? '?dates='+dateStr : ''}`;
+  try {
+    const r = await fetch(url);
+    const d = await r.json();
+    return (d.events || []).map(e => parseGame(e, league));
+  } catch { return []; }
+}
+
+function parseGame(ev, leagueKey) {
+  const comp        = ev.competitions[0];
+  const competitors = comp.competitors || [];
+  const away        = competitors.find(c => c.homeAway === 'away') || competitors[0] || {};
+  const home        = competitors.find(c => c.homeAway === 'home') || competitors[1] || {};
+  const broadcasts  = (comp.broadcasts || []).flatMap(b => b.names || []);
+  const NATIONAL = ['espn','espn2','abc','nbc','cbs','fox','tnt','tbs','nhl network','nba tv','mlb network','peacock','amazon prime video','apple tv+','paramount+','fs1','fs2','usa network','nfl network','big ten network','sec network'];
+  const national = broadcasts.find(b => NATIONAL.includes(b.toLowerCase().trim()));
+  const local    = broadcasts.find(b => !NATIONAL.includes(b.toLowerCase().trim()) && b !== national);
+  const network  = national ? normalizeNetwork(national) : (broadcasts.length ? normalizeNetwork(broadcasts[0]) : '—');
+  const localNet = local ? local : null;
+  const leagueInfo  = LEAGUES.find(l => l.league === leagueKey) || {};
+  return {
+    id:          ev.id,
+    league:      leagueKey,
+    leagueLabel: leagueInfo.label || leagueKey.toUpperCase(),
+    emoji:       leagueInfo.emoji || '🏆',
+    awayAbbr:    away.team?.abbreviation || '???',
+    awayFull:    away.team?.displayName  || '',
+    homeAbbr:    home.team?.abbreviation || '???',
+    homeFull:    home.team?.displayName  || '',
+    awayScore:   away.score || '',
+    homeScore:   home.score || '',
+    network,
+    localNet,
+    state:       ev.status.type?.state,
+    statusText:  ev.status.type?.shortDetail || ev.status.type?.description || '',
+    dateStr:     ev.date,
+    timestamp:   new Date(ev.date).getTime(),
+  };
+}
+
+function normalizeNetwork(raw) {
+  const key = raw.toLowerCase().trim();
+  return NETWORKS[key] || raw.toUpperCase().slice(0,8);
+}
+
+function getDateStr(offset) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return d.toISOString().slice(0,10).replace(/-/g,'');
+}
+
+function getDateStrFromDate(d) {
+  return d.toISOString().slice(0,10).replace(/-/g,'');
+}
+
+function formatDateLabel(offset) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  if (offset ===  0) return { main:'Today',     sub:'' };
+  if (offset ===  1) return { main:'Tomorrow',  sub:'' };
+  if (offset === -1) return { main:'Yesterday', sub:'' };
+  return { main: d.toLocaleDateString('en-US',{weekday:'short'}), sub: d.toLocaleDateString('en-US',{month:'short',day:'numeric'}) };
+}
+
+function formatTime(dateStr) {
+  return new Date(dateStr).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}).replace(' ','');
+}
+
+let hasBackfilled = false;
+
+async function loadGames(offset = 0) {
+  document.getElementById('main-content').innerHTML = '<div class="loading"><div class="spinner"></div>Loading games...</div>';
+  const dateStr = offset === 0 ? '' : getDateStr(offset);
+  const results = await Promise.all(LEAGUES.map(l => fetchLeague(l.sport, l.league, dateStr)));
+  allGames = results.flat().sort((a,b) => a.timestamp - b.timestamp);
+  mergeIntoCache(allGames);
+  // Backfill missing/incomplete past days once per session on first load
+  if (!hasBackfilled && offset === 0) {
+    hasBackfilled = true;
+    backfillMissingDays(); // runs async in background, no spinner
+  }
+  renderView();
+  buildTicker();
+  scheduleNextRefresh();
+}
+
+function renderView() {
+  document.getElementById('date-nav-row').style.display = 'none';
+  // Hide sport chips on settings tab
+  document.getElementById('sport-filter-row').style.display = currentTab === 'settings' ? 'none' : 'flex';
+  if      (currentTab === 'live')     renderLive();
+  else if (currentTab === 'upcoming') renderUpcoming();
+  else if (currentTab === 'final')    renderFinal();
+  else if (currentTab === 'my-teams') renderMyTeams();
+  else if (currentTab === 'settings') renderSettings();
+  updateTeamsCount();
+}
+
+const SPORT_LEAGUE = { nfl:'nfl', nba:'nba', mlb:'mlb', nhl:'nhl', ncaaf:'college-football', ncaab:'mens-college-basketball', soccer:'usa.1' };
+const LEAGUE_SPORT = Object.fromEntries(Object.entries(SPORT_LEAGUE).map(([k,v]) => [v,k]));
+
+function filteredGames(games) {
+  if (activeSports.size === 0) {
+    // Default: show only settings-enabled leagues
+    return games.filter(g => {
+      const sport = LEAGUE_SPORT[g.league];
+      return settings.enabledLeagues.has(sport || g.league);
+    });
+  }
+  // User has manually selected specific sports — show those regardless of settings
+  const activeLeagues = new Set([...activeSports].map(s => SPORT_LEAGUE[s]));
+  return games.filter(g => activeLeagues.has(g.league));
+}
+
+function renderSettings() {
+  document.getElementById('main-content').innerHTML = `
+  <div class="settings-wrap">
+
+    <div class="settings-section">
+      <div class="settings-section-title">Refresh Rates</div>
+      <div class="settings-row">
+        <div><div class="settings-label">Live game refresh</div><div class="settings-desc">How often to update when games are in progress</div></div>
+        <div class="settings-control">
+          <input class="settings-input" id="s-live-refresh" type="number" min="10" max="300" value="${settings.liveRefresh}">
+          <span class="settings-unit">sec</span>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div><div class="settings-label">Idle refresh</div><div class="settings-desc">How often to update when no games are live</div></div>
+        <div class="settings-control">
+          <input class="settings-input" id="s-idle-refresh" type="number" min="60" max="3600" value="${settings.idleRefresh}">
+          <span class="settings-unit">sec</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Overnight Quiet Window</div>
+      <div class="settings-row">
+        <div><div class="settings-label">Pause refreshing overnight</div><div class="settings-desc">Stops all API calls during quiet hours to save data</div></div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="s-quiet-enabled" ${settings.quietEnabled ? 'checked' : ''}>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="settings-row">
+        <div><div class="settings-label">Quiet window</div><div class="settings-desc">No refreshing between these times</div></div>
+        <div class="settings-control">
+          <input class="time-input" id="s-quiet-start" type="time" value="${settings.quietStart}">
+          <span class="settings-unit">to</span>
+          <input class="time-input" id="s-quiet-end" type="time" value="${settings.quietEnd}">
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Display</div>
+      <div class="settings-row">
+        <div><div class="settings-label">Show seconds on clock</div><div class="settings-desc">Toggle the seconds display in the header</div></div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="s-show-seconds" ${settings.showSeconds ? 'checked' : ''}>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="settings-row">
+        <div><div class="settings-label">Show local TV affiliates</div><div class="settings-desc">Display regional station alongside national network</div></div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="s-show-local" ${settings.showLocal ? 'checked' : ''} onchange="document.getElementById('local-style-row').style.display=this.checked?'flex':'none'">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="settings-row" id="local-style-row" style="display:${settings.showLocal ? 'flex' : 'none'};">
+        <div><div class="settings-label">Local affiliate style</div><div class="settings-desc">How the local station appears on the card</div></div>
+        <div class="settings-control">
+          <select id="s-local-style" style="background:var(--surface2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--font-head);font-size:13px;padding:5px 10px;">
+            <option value="stacked" ${settings.localStyle==='stacked'?'selected':''}>Stacked (below badge)</option>
+            <option value="inline" ${settings.localStyle==='inline'?'selected':''}>Inline (/ slash)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Leagues</div>
+      <div class="settings-desc" style="margin-bottom:10px;">Disabled leagues are hidden everywhere including the All filter</div>
+      <div class="league-toggles">
+        ${[['nfl','NFL 🏈'],['nba','NBA 🏀'],['mlb','MLB ⚾'],['nhl','NHL 🏒'],['ncaaf','NCAAF 🏈'],['ncaab','NCAAB 🏀'],['soccer','MLS ⚽']].map(([key,label]) => `
+        <div class="settings-row" style="padding:8px 0;">
+          <div class="settings-label">${label}</div>
+          <label class="toggle-switch">
+            <input type="checkbox" class="league-toggle" data-league="${key}" ${settings.enabledLeagues.has(key) ? 'checked' : ''}>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:16px;">
+      <button class="save-btn" onclick="applySettings()">Save Settings</button>
+      <span class="save-confirm" id="save-confirm">Saved!</span>
+    </div>
+  </div>`;
+}
+
+function applySettings() {
+  settings.liveRefresh  = Math.max(10,  parseInt(document.getElementById('s-live-refresh').value)  || 30);
+  settings.idleRefresh  = Math.max(60,  parseInt(document.getElementById('s-idle-refresh').value)  || 300);
+  settings.quietEnabled = document.getElementById('s-quiet-enabled').checked;
+  settings.quietStart   = document.getElementById('s-quiet-start').value;
+  settings.quietEnd     = document.getElementById('s-quiet-end').value;
+  settings.showSeconds  = document.getElementById('s-show-seconds').checked;
+  settings.showLocal    = document.getElementById('s-show-local').checked;
+  settings.localStyle   = document.getElementById('s-local-style')?.value || 'stacked';
+  settings.enabledLeagues = new Set(
+    [...document.querySelectorAll('.league-toggle')]
+      .filter(el => el.checked)
+      .map(el => el.dataset.league)
+  );
+  saveSettings();
+  resetRefreshTimer();
+  // Show confirmation
+  const el = document.getElementById('save-confirm');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+  // Re-render sport chips to reflect league changes
+  rebuildSportChips();
+}
+
+function rebuildSportChips() {
+  const all = [['nfl','NFL'],['nba','NBA'],['mlb','MLB'],['nhl','NHL'],['ncaaf','NCAAF'],['ncaab','NCAAB'],['soccer','Soccer']];
+  const row = document.getElementById('sport-filter-row');
+  row.innerHTML = '<span class="filter-label">Sport</span>';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'chip active';
+  allBtn.dataset.sport = 'all';
+  allBtn.textContent = 'All';
+  allBtn.onclick = () => filterSport(allBtn);
+  row.appendChild(allBtn);
+  all.forEach(([key, label]) => {
+    const btn = document.createElement('button');
+    btn.className = 'chip';
+    btn.dataset.sport = key;
+    btn.textContent = label;
+    // Dim chips that are off by default per settings
+    if (!settings.enabledLeagues.has(key)) btn.style.opacity = '0.4';
+    btn.onclick = () => filterSport(btn);
+    row.appendChild(btn);
+  });
+  activeSports = new Set();
+}
+
+function isQuietTime() {
+  if (!settings.quietEnabled) return false;
+  const now = new Date();
+  const cur = now.getHours() * 60 + now.getMinutes();
+  const [sh, sm] = settings.quietStart.split(':').map(Number);
+  const [eh, em] = settings.quietEnd.split(':').map(Number);
+  const start = sh * 60 + sm, end = eh * 60 + em;
+  return start <= end ? (cur >= start && cur < end) : (cur >= start || cur < end);
+}
+
+let refreshTimer = null;
+function resetRefreshTimer() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  scheduleNextRefresh();
+}
+
+function scheduleNextRefresh() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  const hasLive = allGames.some(g => g.state === 'in');
+  const interval = isQuietTime() ? null : (hasLive ? settings.liveRefresh : settings.idleRefresh);
+  if (interval) {
+    refreshTimer = setTimeout(() => {
+      loadGames(selectedDate);
+      scheduleNextRefresh();
+    }, interval * 1000);
+  } else if (isQuietTime()) {
+    // Check again in 1 minute to see if quiet window ended
+    refreshTimer = setTimeout(scheduleNextRefresh, 60000);
+  }
+}
+
+function renderLive() {
+  const games = filteredGames(allGames).filter(g => g.state === 'in');
+  if (!games.length) {
+    document.getElementById('main-content').innerHTML = '<div class="empty"><strong>No Live Games</strong>Nothing in progress right now. Check the Upcoming tab.</div>';
+    return;
+  }
+  document.getElementById('main-content').innerHTML =
+    sectionHead('In Progress', games.length) +
+    '<div class="game-grid">' + games.map(gameCard).join('') + '</div>';
+}
+
+function renderUpcoming() {
+  const games = filteredGames(allGames)
+    .filter(g => g.state === 'pre')
+    .sort((a,b) => a.timestamp - b.timestamp);
+  if (!games.length) {
+    document.getElementById('main-content').innerHTML = '<div class="empty"><strong>No Upcoming Games</strong>Nothing scheduled. Try a different sport.</div>';
+    return;
+  }
+  // Group by date bucket
+  const now = new Date();
+  const todayStr = now.toDateString();
+  const tomorrowStr = new Date(now.getTime() + 86400000).toDateString();
+  const buckets = {};
+  games.forEach(g => {
+    const d = new Date(g.timestamp);
+    const ds = d.toDateString();
+    let label;
+    if (ds === todayStr) label = 'Today';
+    else if (ds === tomorrowStr) label = 'Tomorrow';
+    else label = d.toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'});
+    if (!buckets[label]) buckets[label] = [];
+    buckets[label].push(g);
+  });
+  let html = '';
+  for (const [label, bucket] of Object.entries(buckets)) {
+    html += sectionHead(label, bucket.length);
+    html += '<div class="game-grid">' + bucket.map(g => gameCard(g, true)).join('') + '</div>';
+  }
+  document.getElementById('main-content').innerHTML = html;
+}
+
+function renderFinal() {
+  // Merge today's finals with cached historical finals, deduplicated
+  const cached = getCachedFinals();
+  const todayFinals = allGames.filter(g => g.state === 'post');
+  const allFinals = [...new Map([...cached, ...todayFinals].map(g => [g.id, g])).values()];
+  const games = filteredGames(allFinals)
+    .sort((a,b) => b.timestamp - a.timestamp);
+  if (!games.length) {
+    document.getElementById('main-content').innerHTML = '<div class="empty"><strong>No Recent Finals</strong>No completed games in the past week for this sport.</div>';
+    return;
+  }
+  // Group by date, most recent first
+  const buckets = {};
+  games.forEach(g => {
+    const d = new Date(g.timestamp);
+    const now = new Date();
+    const todayStr = now.toDateString();
+    const yesterdayStr = new Date(now.getTime() - 86400000).toDateString();
+    const ds = d.toDateString();
+    let label;
+    if (ds === todayStr) label = 'Today';
+    else if (ds === yesterdayStr) label = 'Yesterday';
+    else label = d.toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'});
+    if (!buckets[label]) buckets[label] = [];
+    buckets[label].push(g);
+  });
+  let html = '';
+  for (const [label, bucket] of Object.entries(buckets)) {
+    html += sectionHead(label, bucket.length);
+    html += '<div class="game-grid">' + bucket.map(g => gameCard(g, true)).join('') + '</div>';
+  }
+  document.getElementById('main-content').innerHTML = html;
+}
+
+function renderMyTeams() {
+  const leagueMap = { nfl:'nfl', nba:'nba', mlb:'mlb', nhl:'nhl', soccer:'soccer' };
+  let allTeams;
+  const singleSport = activeSports.size === 1 ? [...activeSports][0] : null;
+  if (singleSport && MASTER_TEAMS[leagueMap[singleSport] || singleSport]?.length) {
+    allTeams = MASTER_TEAMS[leagueMap[singleSport]];
+  } else if (activeSports.size === 0) {
+    const fromMaster = Object.values(MASTER_TEAMS).flat();
+    const fromGames  = allGames.flatMap(g => [
+      { abbr:g.awayAbbr, full:g.awayFull, emoji:g.emoji, league:g.league },
+      { abbr:g.homeAbbr, full:g.homeFull, emoji:g.emoji, league:g.league },
+    ]);
+    allTeams = [...new Map([...fromMaster, ...fromGames].map(t => [t.abbr+t.league, t])).values()]
+      .sort((a,b) => a.full.localeCompare(b.full));
+  } else {
+    // Mix of selected sports — pull from master lists + live games
+    const fromMaster = [...activeSports].flatMap(s => MASTER_TEAMS[leagueMap[s]] || []);
+    const activeLeagues = activeSports.size === 0 ? new Set(Object.values(SPORT_LEAGUE)) : new Set([...activeSports].map(s => SPORT_LEAGUE[s]));
+    const fromGames = allGames.filter(g => activeLeagues.has(g.league)).flatMap(g => [
+      { abbr:g.awayAbbr, full:g.awayFull, emoji:g.emoji, league:g.league },
+      { abbr:g.homeAbbr, full:g.homeFull, emoji:g.emoji, league:g.league },
+    ]);
+    allTeams = [...new Map([...fromMaster, ...fromGames].map(t => [t.abbr+t.league, t])).values()]
+      .sort((a,b) => a.full.localeCompare(b.full));
+  }
+
+  const sportLabel = activeSports.size === 0 ? 'All Sports' : [...activeSports].map(s => s.toUpperCase()).join(', ');
+  let html = sectionHead('Follow Teams — ' + sportLabel, allTeams.length);
+  if (myTeams.length) {
+    html += '<div style="font-size:12px;color:var(--muted);margin-bottom:14px;padding:8px 12px;background:var(--surface2);border-radius:4px;border-left:3px solid var(--gold);">Your ' + myTeams.length + ' followed team' + (myTeams.length !== 1 ? 's are' : ' is') + ' highlighted with a gold border across Live, Upcoming, and Final.</div>';
+  }
+  if (!allTeams.length) {
+    html += '<div class="empty" style="padding:20px 0 8px;"><strong>No Teams Found</strong>No teams available for this sport today.</div>';
+  } else {
+    html += '<div class="team-grid">' + allTeams.map(t => `
+      <div class="team-tile ${myTeams.includes(teamKey(t.abbr,t.league)) ? 'selected' : ''}" onclick="toggleTeam('${t.abbr}','${t.league}',this)">
+        <div class="team-icon">${t.emoji}</div>
+        <div class="team-tile-name">${t.abbr}</div>
+        <div class="team-tile-league">${(t.full||'').length>18?(t.full||'').slice(0,16)+'…':(t.full||'')}</div>
+      </div>`).join('') + '</div>';
+  }
+  document.getElementById('main-content').innerHTML = html;
+}
+
+function gameCard(g, showDate) {
+  const isLive    = g.state === 'in';
+  const isPost    = g.state === 'post';
+  const isPre     = g.state === 'pre';
+  const inWatch   = watchlist.includes(g.id);
+  const inMyTeams = myTeams.includes(teamKey(g.awayAbbr,g.league)) || myTeams.includes(teamKey(g.homeAbbr,g.league));
+  let cls = 'game-card';
+  if (isLive)    cls += ' live-card';
+  if (inMyTeams) cls += ' watchlisted';
+
+  const topRight = isLive
+    ? `<span class="live-label"><span style="width:5px;height:5px;border-radius:50%;background:var(--accent);display:inline-block;animation:pulse 1.5s infinite;"></span>${g.statusText}</span>`
+    : `<span class="time-label">${isPre ? formatTime(g.dateStr) : g.statusText}</span>`;
+
+  const scoreSection = (isLive || isPost)
+    ? `<div class="score-block"><span class="score">${g.awayScore}</span><span class="score-sep">:</span><span class="score">${g.homeScore}</span></div>`
+    : `<div class="score-block"><span class="vs-text">VS</span></div>`;
+
+  return `
+  <div class="${cls}">
+    <div class="card-top">
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <span class="network-badge">${g.network}</span>
+        ${settings.showLocal && g.localNet && settings.localStyle === 'stacked'
+          ? `<span style="font-size:10px;color:#7a7f90;padding-left:2px;">+ ${g.localNet}</span>`
+          : ''}
+      </div>
+      ${settings.showLocal && g.localNet && settings.localStyle === 'inline'
+        ? `<span style="font-size:10px;color:#7a7f90;align-self:center;">/ ${g.localNet}</span>`
+        : ''}
+      <span style="font-size:13px;line-height:1;opacity:0.7;">${g.emoji}</span>
+      ${topRight}
+    </div>
+    <div class="matchup">
+      <div class="team-block away"><div class="team-name">${g.awayAbbr}</div><div class="team-full">${g.awayFull.replace(/^.+ /,'')}</div></div>
+      ${scoreSection}
+      <div class="team-block home"><div class="team-name">${g.homeAbbr}</div><div class="team-full">${g.homeFull.replace(/^.+ /,'')}</div></div>
+    </div>
+    <div class="card-foot">
+      <span class="game-status">${g.leagueLabel}${showDate ? ' · ' + new Date(g.timestamp).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}) : ''}</span>
+      <button class="watch-btn ${inWatch?'watching':''}" onclick="toggleWatch('${g.id}',this)">${inWatch?'★ Watching':'☆ Watchlist'}</button>
+    </div>
+  </div>`;
+}
+
+function sectionHead(title, count) {
+  return `<div class="section-head"><span class="section-title">${title}</span><span class="section-count">${count} game${count!==1?'s':''}</span></div>`;
+}
+
+function buildDateNav() {
+  const row = document.getElementById('date-nav-row');
+  row.innerHTML = [-1,0,1,2,3,4,5,6,7].map(o => {
+    const l = formatDateLabel(o);
+    return `<button class="date-chip ${o===selectedDate?'active':''}" onclick="selectDate(${o},this)">${l.main}${l.sub?`<small>${l.sub}</small>`:''}</button>`;
+  }).join('');
+}
+
+function selectDate(offset, el) {
+  selectedDate = offset;
+  document.querySelectorAll('.date-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  loadGames(offset);
+}
+
+function buildTicker() {
+  const items = allGames.filter(g => g.state === 'in' || g.state === 'post');
+  if (!items.length) { document.getElementById('ticker-inner').innerHTML = '<div class="ticker-item" style="color:var(--muted)">No live games right now</div>'; return; }
+  const html = items.map(g => {
+    const myGame = myTeams.includes(teamKey(g.awayAbbr,g.league)) || myTeams.includes(teamKey(g.homeAbbr,g.league));
+    const awayStyle = myTeams.includes(teamKey(g.awayAbbr,g.league)) ? 'color:var(--gold);font-weight:700;' : '';
+    const homeStyle = myTeams.includes(teamKey(g.homeAbbr,g.league)) ? 'color:var(--gold);font-weight:700;' : '';
+    const itemStyle = myGame ? 'border-right:1px solid var(--border);background:rgba(244,162,97,0.06);' : 'border-right:1px solid var(--border);';
+    return `<div class="ticker-item" style="${itemStyle}"><span>${g.emoji}</span><span style="${awayStyle}">${g.awayAbbr}</span><span class="t-score">${g.awayScore}–${g.homeScore}</span><span style="${homeStyle}">${g.homeAbbr}</span><span class="${g.state==='in'?'t-live':''}" style="font-size:11px;">${g.state==='in'?g.statusText:'Final'}</span></div>`;
+  }).join('');
+  document.getElementById('ticker-inner').innerHTML = html + html;
+}
+
+function renderMyTeamsGames() {
+  // Teams are highlighted across Live/Upcoming/Final tabs via the gold border on gameCard
+  // Nothing to render here anymore
+}
+
+function toggleWatch(id, btn) {
+  if (watchlist.includes(id)) { watchlist = watchlist.filter(x => x !== id); btn.textContent = '☆ Watchlist'; btn.classList.remove('watching'); }
+  else { watchlist.push(id); btn.textContent = '★ Watching'; btn.classList.add('watching'); }
+  localStorage.setItem('watchlist', JSON.stringify(watchlist));
+}
+
+function toggleTeam(abbr, league, el) {
+  const key = teamKey(abbr, league);
+  if (myTeams.includes(key)) { myTeams = myTeams.filter(t => t !== key); el.classList.remove('selected'); }
+  else { myTeams.push(key); el.classList.add('selected'); }
+  localStorage.setItem('myTeams', JSON.stringify(myTeams));
+  updateTeamsCount();
+  renderMyTeamsGames();
+}
+
+function updateTeamsCount() {
+  const el = document.getElementById('my-teams-count');
+  el.textContent = myTeams.length ? `(${myTeams.length})` : '';
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  // Reset sport chips to settings defaults
+  activeSports = new Set();
+  document.querySelectorAll('.chip[data-sport]').forEach(c => {
+    const sport = c.dataset.sport;
+    c.classList.remove('active');
+    if (sport === 'all') {
+      c.classList.add('active');
+      c.style.opacity = '';
+    } else {
+      // Restore dim state for settings-disabled leagues
+      c.style.opacity = settings.enabledLeagues.has(sport) ? '' : '0.4';
+    }
+  });
+  renderView();
+}
+
+function filterSport(el) {
+  const sport = el.dataset.sport;
+  if (sport === 'all') {
+    activeSports = new Set();
+    document.querySelectorAll('.chip[data-sport]').forEach(c => {
+      c.classList.remove('active');
+      if (c.dataset.sport === 'all') { c.classList.add('active'); c.style.opacity = ''; }
+      else { c.style.opacity = settings.enabledLeagues.has(c.dataset.sport) ? '' : '0.4'; }
+    });
+  } else {
+    if (activeSports.has(sport)) {
+      activeSports.delete(sport);
+      el.classList.remove('active');
+      // Restore dim if this league is disabled in settings
+      el.style.opacity = settings.enabledLeagues.has(sport) ? '' : '0.4';
+    } else {
+      activeSports.add(sport);
+      el.classList.add('active');
+      el.style.opacity = ''; // always fully visible when actively selected
+    }
+    const allChip = document.querySelector('.chip[data-sport="all"]');
+    if (activeSports.size === 0) { allChip.classList.add('active'); }
+    else { allChip.classList.remove('active'); }
+  }
+  renderView();
+}
+
+function updateClock() {
+  const opts = settings.showSeconds
+    ? {hour:'numeric',minute:'2-digit',second:'2-digit',hour12:true}
+    : {hour:'numeric',minute:'2-digit',hour12:true};
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US', opts);
+}
+setInterval(updateClock, 1000);
+updateClock();
+// Dynamic refresh handled by scheduleNextRefresh()
+loadGames(0);
+</script>
+</body>
+</html>
