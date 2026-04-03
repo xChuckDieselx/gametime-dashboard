@@ -2,7 +2,7 @@
   "name": "Good Grief It's Gametime",
   "short_name": "Gametime",
   "description": "Live sports scores, schedules, and TV listings",
-  "start_url": "./sports-dashboard.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0d0e12",
   "theme_color": "#0d0e12",
